@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% block title %}Admin Login - EcoLearn{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-4 mb-5">
+    <div class="col-md-6 col-lg-4">
+        <div class="card shadow-lg border-0 rounded-4 border-top border-5 border-warning">
+            <div class="card-body p-4 p-md-5">
+
+                <div class="text-center mb-4">
+                    <i class="bi bi-shield-lock-fill display-3 text-warning"></i>
+                    <h3 class="fw-bold mt-2">Admin Portal</h3>
+                    <p class="text-muted small">Authorized access for sustainability content management.</p>
+                </div>
+
+                {% if messages %}
+                {% for msg in messages %}
+                <div class="alert alert-{{ msg.tags }} rounded-3 py-2" role="alert">{{ msg }}</div>
+                {% endfor %}
+                {% endif %}
+
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger rounded-3 py-2">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>Invalid credentials or insufficient privileges.
+                </div>
+                {% endif %}
+
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    <!-- Username -->
+                    <div class="mb-3">
+                        <label for="{{ form.username.id_for_label }}" class="form-label fw-semibold">
+                            <i class="bi bi-person-badge-fill me-1 text-warning"></i>Admin Username
+                        </label>
+                        {{ form.username }}
+                        {% if form.username.errors %}
+                        <div class="text-danger small mt-1"><i class="bi bi-x-circle me-1"></i>{{ form.username.errors.0
+                            }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Password -->
+                    <div class="mb-3">
+                        <label for="{{ form.password.id_for_label }}" class="form-label fw-semibold">
+                            <i class="bi bi-key-fill me-1 text-warning"></i>Admin Password
+                        </label>
+                        {{ form.password }}
+                        {% if form.password.errors %}
+                        <div class="text-danger small mt-1"><i class="bi bi-x-circle me-1"></i>{{ form.password.errors.0
+                            }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Caption (Human Verification) -->
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-shield-check me-1 text-warning"></i>Verification Code
+                        </label>
+
+                        <!-- Display the generated code -->
+                        <div class="text-center p-3 mb-2 rounded-3 border border-2 border-warning"
+                            style="background: linear-gradient(135deg, #fffbeb, #fef9c3); letter-spacing: 8px; font-size: 1.8rem; font-weight: 800; font-family: 'Courier New', monospace; color: #b45309; user-select: none;">
+                            {{ caption_code }}
+                        </div>
+                        <div class="form-text text-muted small text-center mb-2">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Type the code above to verify you are human. Not stored anywhere.
+                        </div>
+
+                        {{ form.caption }}
+                        {% if form.caption.errors %}
+                        <div class="text-danger small mt-1"><i class="bi bi-x-circle me-1"></i>{{ form.caption.errors.0
+                            }}</div>
+                        {% endif %}
+                    </div>
+
+                    <button type="submit" class="btn btn-warning w-100 fw-bold rounded-pill py-2 fs-6 text-dark">
+                        <i class="bi bi-shield-check me-2"></i>Authorize &amp; Enter
+                    </button>
+
+                    <p class="text-center mt-3 mb-0 text-muted small">
+                        Not an admin?
+                        <a href="{% url 'login' %}" class="text-success fw-bold text-decoration-none">User Login</a>
+                    </p>
+                </form>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

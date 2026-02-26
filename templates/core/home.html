@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+{% block title %}Welcome - EcoLearn{% endblock %}
+
+{% block content %}
+<div class="row align-items-center mb-5">
+    <div class="col-md-6">
+        <h1 class="display-4 fw-bold text-success mb-3">Live Greener, Better!</h1>
+        <p class="lead text-muted mb-4">Join our Sustainable Living Education Platform. Learn eco-friendly practices,
+            complete interactive challenges, and track your sustainable journey today.</p>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'register' %}" class="btn btn-success btn-lg px-4 fw-bold shadow-sm"
+                style="background-color: var(--primary-color);">Start Learning Now</a>
+            <a href="{% url 'login' %}" class="btn btn-outline-success btn-lg px-4 fw-bold">User Log in</a>
+            <a href="{% url 'admin_login' %}" class="btn btn-outline-warning btn-lg px-4 fw-bold">Admin Portal</a>
+        </div>
+    </div>
+    <div class="col-md-6 mt-4 mt-md-0 text-center">
+        <!-- A placeholder for an inspirational image or icon -->
+        <i class="bi bi-globe-americas text-success" style="font-size: 15rem; opacity: 0.8;"></i>
+    </div>
+</div>
+
+<div class="row mt-5 pt-3 border-top">
+    <div class="col-12 text-center mb-4">
+        <h2 class="fw-bold text-success">Core Features</h2>
+    </div>
+    <div class="col-md-4 mb-4 text-center">
+        <i class="bi bi-book text-success display-4 mb-3"></i>
+        <h3>Learning Modules</h3>
+        <p class="text-muted">Explore our educational content on eco-friendly practices.</p>
+    </div>
+    <div class="col-md-4 mb-4 text-center">
+        <i class="bi bi-trophy text-success display-4 mb-3"></i>
+        <h3>Challenges</h3>
+        <p class="text-muted">Engage in interactive challenges to adopt green habits.</p>
+    </div>
+    <div class="col-md-4 mb-4 text-center">
+        <i class="bi bi-graph-up text-success display-4 mb-3"></i>
+        <h3>Progress Tracking</h3>
+        <p class="text-muted">Track your sustainable consistency and earn points.</p>
+    </div>
+</div>
+
+<div class="row mt-5 pt-3 border-top pb-5">
+    <div class="col-12 text-center mb-4">
+        <h2 class="fw-bold text-success">Roles:<br>Admin, User</h2>
+        <h4 class="mt-4">Description of the Roles:</h4>
+    </div>
+    <div class="col-md-6 mb-4">
+        <div class="card h-100 border-success shadow-sm">
+            <div class="card-body text-center">
+                <i class="bi bi-shield-lock-fill text-success display-4 mb-3"></i>
+                <h3 class="fw-bold">• Admin:</h3>
+                <p class="lead">Updates sustainability content</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-4">
+        <div class="card h-100 border-success shadow-sm">
+            <div class="card-body text-center">
+                <i class="bi bi-person-fill text-success display-4 mb-3"></i>
+                <h3 class="fw-bold">• User:</h3>
+                <p class="lead">Learns and applies practices</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

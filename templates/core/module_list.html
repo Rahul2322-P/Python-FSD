@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}Learning Modules - EcoLearn{% endblock %}
+
+{% block content %}
+<div class="row mb-5 text-center">
+    <div class="col-12 mt-4">
+        <h2 class="display-5 fw-bold text-success"><i class="bi bi-journals me-3"></i>Learning Modules</h2>
+        <p class="lead text-muted">Dive into our interactive modules and discover how to live a more sustainable life.
+        </p>
+    </div>
+</div>
+
+<div class="row row-cols-1 row-cols-md-3 g-4">
+    {% for module in modules %}
+    <div class="col">
+        <div
+            class="card card-custom h-100 shadow-sm border-0 {% if module in completed_modules %}border-success{% endif %}">
+            <div class="card-body">
+                <h5 class="card-title fw-bold text-success">{{ module.title }}</h5>
+                <p class="card-text text-muted">{{ module.description|truncatewords:20 }}</p>
+                <a href="{% url 'module_detail' module.pk %}" class="btn btn-outline-success fw-bold rounded-pill">
+                    {% if module in completed_modules %}
+                    <i class="bi bi-check-circle-fill me-1"></i> Review Module
+                    {% else %}
+                    Start Learning <i class="bi bi-arrow-right-short ms-1"></i>
+                    {% endif %}
+                </a>
+            </div>
+            <div class="card-footer bg-white border-0 text-muted small">
+                Added: {{ module.created_at|date:"M d, Y" }}
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-center text-muted">
+        <i class="bi bi-emoji-frown display-4 mb-3 d-block"></i>
+        <h4>No modules available yet.</h4>
+        <p>Check back soon for new content!</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

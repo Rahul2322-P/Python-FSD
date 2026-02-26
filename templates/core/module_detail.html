@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ module.title }} - EcoLearn{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mt-4 mb-4">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'modules' %}"
+                class="text-success text-decoration-none fw-bold">Modules</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ module.title }}</li>
+    </ol>
+</nav>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0 rounded-pilled">
+            <div class="card-body p-5">
+                <h1 class="display-5 fw-bold text-success mb-3">{{ module.title }}</h1>
+                <p class="lead text-muted border-bottom pb-4">{{ module.description }}</p>
+
+                <div class="content mt-4 lh-lg" style="font-size: 1.1rem;">
+                    {{ module.content|safe }}
+                </div>
+
+                <div class="mt-5 pt-4 border-top text-center">
+                    {% if is_completed %}
+                    <div class="alert alert-success d-inline-block px-5 shadow-sm rounded-pill fw-bold">
+                        <i class="bi bi-check-circle-fill me-2 fs-5"></i> Module Completed
+                    </div>
+                    {% else %}
+                    <form action="{% url 'complete_module' module.pk %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success btn-lg px-5 fw-bold rounded-pill">Mark as
+                            Complete</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4 mt-4 mt-lg-0">
+        <div class="card shadow-sm border-0 rounded-pilled bg-light">
+            <div class="card-body p-4 text-center">
+                <i class="bi bi-info-circle display-4 text-primary mb-3"></i>
+                <h4 class="fw-bold mb-3">Module Info</h4>
+                <ul class="list-unstyled text-muted lh-lg">
+                    <li><i class="bi bi-calendar me-2"></i> {{ module.created_at|date:"F d, Y" }}</li>
+                    <li><i class="bi bi-clock me-2"></i> Approx 15 min read</li>
+                </ul>
+                <a href="{% url 'challenges' %}" class="btn btn-outline-primary w-100 fw-bold rounded-pill mt-3">Try
+                    Challenges</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+{% block title %}Admin Dashboard - EcoLearn{% endblock %}
+
+{% block content %}
+
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-center mb-2 mt-4">
+    <h1 class="fw-bold text-success"><i class="bi bi-shield-lock me-2"></i>Platform Management</h1>
+</div>
+<p class="lead text-muted mb-4">Official Administrator Portal for EcoLearn. Manage modules, challenges and view all
+    registered users.</p>
+
+<!-- Stats Row -->
+<div class="row mb-4">
+    <div class="col-md-4 mb-3">
+        <div class="card border-0 shadow-sm text-center py-3 rounded-4"
+            style="background:linear-gradient(135deg,#d1fae5,#a7f3d0)">
+            <div class="card-body">
+                <i class="bi bi-people-fill display-5 text-success"></i>
+                <h2 class="fw-bold text-success mt-1">{{ total_users }}</h2>
+                <p class="mb-0 text-muted fw-semibold">Registered Users</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card border-0 shadow-sm text-center py-3 rounded-4"
+            style="background:linear-gradient(135deg,#dbeafe,#bfdbfe)">
+            <div class="card-body">
+                <i class="bi bi-book-fill display-5 text-primary"></i>
+                <h2 class="fw-bold text-primary mt-1">{{ total_modules }}</h2>
+                <p class="mb-0 text-muted fw-semibold">Learning Modules</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card border-0 shadow-sm text-center py-3 rounded-4"
+            style="background:linear-gradient(135deg,#fef9c3,#fde68a)">
+            <div class="card-body">
+                <i class="bi bi-trophy-fill display-5 text-warning"></i>
+                <h2 class="fw-bold text-warning mt-1">{{ total_challenges }}</h2>
+                <p class="mb-0 text-muted fw-semibold">Challenges</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Users Table ── -->
+<div class="card shadow-sm border-0 rounded-4 mb-5">
+    <div class="card-header bg-success text-white rounded-top-4 d-flex align-items-center py-3">
+        <i class="bi bi-people-fill fs-5 me-2"></i>
+        <h5 class="mb-0 fw-bold">All Registered Users</h5>
+        <span class="badge bg-light text-success ms-auto">{{ total_users }} total</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">#</th>
+                        <th><i class="bi bi-person me-1"></i>Username</th>
+                        <th><i class="bi bi-envelope me-1"></i>Email</th>
+                        <th><i class="bi bi-calendar-check me-1"></i>Joined</th>
+                        <th><i class="bi bi-star me-1"></i>Points</th>
+                        <th><i class="bi bi-journal-check me-1"></i>Modules</th>
+                        <th><i class="bi bi-trophy me-1"></i>Challenges</th>
+                        <th class="text-center">Role</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td class="ps-4 text-muted small">{{ forloop.counter }}</td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center fw-bold"
+                                    style="width:34px;height:34px;font-size:0.85rem;">
+                                    {{ user.username|first|upper }}
+                                </div>
+                                <span class="fw-semibold">{{ user.username }}</span>
+                            </div>
+                        </td>
+                        <td class="text-muted small">{{ user.email|default:"—" }}</td>
+                        <td class="text-muted small">{{ user.date_joined|date:"M d, Y" }}</td>
+                        <td>
+                            <span class="badge bg-success rounded-pill">
+                                {% if user.userprofile %}{{ user.userprofile.total_points }}{% else %}0{% endif %} pts
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-primary rounded-pill">
+                                {% if user.userprofile %}{{ user.userprofile.completed_modules.count }}{% else %}0{% endif %}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-warning text-dark rounded-pill">
+                                {% if user.userprofile %}{{ user.userprofile.completed_challenges.count }}{% else %}0{% endif %}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            {% if user.is_staff %}
+                            <span class="badge bg-danger rounded-pill"><i
+                                    class="bi bi-shield-fill me-1"></i>Admin</span>
+                            {% else %}
+                            <span class="badge bg-secondary rounded-pill"><i class="bi bi-person me-1"></i>User</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-4">No users registered yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ── Modules & Challenges ── -->
+<div class="row">
+    <!-- Learning Modules -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100 shadow-sm border-0 rounded-4">
+            <div
+                class="card-header bg-primary text-white d-flex justify-content-between align-items-center rounded-top-4 py-3">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-book me-2"></i>Learning Modules</h5>
+                <a href="{% url 'custom_admin_module_create' %}" class="btn btn-sm btn-light text-primary fw-bold">
+                    <i class="bi bi-plus-lg"></i> New
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for module in modules %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-3 px-4">
+                        <div>
+                            <span class="fw-bold d-block">{{ module.title }}</span>
+                            <small class="text-muted">Added: {{ module.created_at|date:"M d, Y" }}</small>
+                        </div>
+                        <div>
+                            <a href="{% url 'custom_admin_module_edit' module.pk %}"
+                                class="btn btn-sm btn-outline-primary shadow-sm me-1"><i
+                                    class="bi bi-pencil-square"></i></a>
+                            <a href="{% url 'custom_admin_module_delete' module.pk %}"
+                                class="btn btn-sm btn-outline-danger shadow-sm"><i class="bi bi-trash"></i></a>
+                        </div>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item text-center text-muted py-4">No modules found.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Challenges -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100 shadow-sm border-0 rounded-4">
+            <div
+                class="card-header bg-warning text-dark d-flex justify-content-between align-items-center rounded-top-4 py-3">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-trophy me-2"></i>Green Challenges</h5>
+                <a href="{% url 'custom_admin_challenge_create' %}" class="btn btn-sm btn-light text-warning fw-bold">
+                    <i class="bi bi-plus-lg"></i> New
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for challenge in challenges %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-3 px-4">
+                        <div>
+                            <span class="fw-bold d-block">{{ challenge.title }}</span>
+                            <small class="badge bg-secondary rounded-pill me-1">{{ challenge.points }} pts</small>
+                            <small class="text-muted">{{ challenge.created_at|date:"M d, Y" }}</small>
+                        </div>
+                        <div>
+                            <a href="{% url 'custom_admin_challenge_edit' challenge.pk %}"
+                                class="btn btn-sm btn-outline-primary shadow-sm me-1"><i
+                                    class="bi bi-pencil-square"></i></a>
+                            <a href="{% url 'custom_admin_challenge_delete' challenge.pk %}"
+                                class="btn btn-sm btn-outline-danger shadow-sm"><i class="bi bi-trash"></i></a>
+                        </div>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item text-center text-muted py-4">No challenges found.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

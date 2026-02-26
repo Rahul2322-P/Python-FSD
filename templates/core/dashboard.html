@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - EcoLearn{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold"><i class="bi bi-speedometer2 text-success me-2"></i>Dashboard</h2>
+    <span class="badge bg-success rounded-pill fs-5 p-2 px-3">
+        <i class="bi bi-star-fill text-warning me-1"></i> Total Points: {{ profile.total_points }}
+    </span>
+</div>
+
+<div class="row mb-5">
+    <div class="col-md-6 mb-4">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-body">
+                <h4 class="card-title fw-bold text-success"><i class="bi bi-journal-check me-2"></i>Module Progress</h4>
+                <div class="progress mt-4 mb-2 shadow-sm rounded-pill">
+                    <div class="progress-bar bg-success-custom progress-bar-striped progress-bar-animated"
+                        role="progressbar" aria-valuenow="{{ module_progress }}" aria-valuemin="0" aria-valuemax="100">
+                        {{ module_progress|floatformat:0 }}%
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between text-muted fw-bold">
+                    <span>0%</span>
+                    <span>{{ module_progress|floatformat:0 }}% Completed</span>
+                    <span>100%</span>
+                </div>
+                <hr>
+                <p class="mb-1 text-muted">You have completed <strong>{{ completed_modules.count }}</strong> module(s).
+                </p>
+                <a href="{% url 'modules' %}" class="btn btn-outline-success btn-sm mt-3 fw-bold rounded-pill">Continue
+                    Learning</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-body">
+                <h4 class="card-title fw-bold text-success"><i class="bi bi-trophy me-2"></i>Challenge Progress</h4>
+                <div class="progress mt-4 mb-2 shadow-sm rounded-pill">
+                    <div class="progress-bar bg-info progress-bar-striped progress-bar-animated" role="progressbar"
+                        aria-valuenow="{{ challenge_progress }}" aria-valuemin="0" aria-valuemax="100">
+                        {{ challenge_progress|floatformat:0 }}%
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between text-muted fw-bold">
+                    <span>0%</span>
+                    <span>{{ challenge_progress|floatformat:0 }}% Completed</span>
+                    <span>100%</span>
+                </div>
+                <hr>
+                <p class="mb-1 text-muted">You have conquered <strong>{{ completed_challenges.count }}</strong>
+                    challenge(s).</p>
+                <a href="{% url 'challenges' %}" class="btn btn-outline-info btn-sm mt-3 fw-bold rounded-pill">Take New
+                    Challenges</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <h3 class="fw-bold mb-4"><i class="bi bi-clock-history text-muted me-2"></i>Recent Achievements</h3>
+        <ul class="list-group list-group-flush shadow-sm rounded">
+            {% for challenge in completed_challenges %}
+            <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                <div>
+                    <i class="bi bi-check-circle-fill text-success fs-5 me-2"></i>
+                    <span class="fw-bold">{{ challenge.title }}</span>
+                </div>
+                <span class="badge bg-success rounded-pill">+{{ challenge.points }} points</span>
+            </li>
+            {% empty %}
+            <li class="list-group-item text-center text-muted py-4">No challenges completed yet. Start taking
+                challenges!</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endblock %}
