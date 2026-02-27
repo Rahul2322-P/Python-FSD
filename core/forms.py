@@ -171,6 +171,7 @@ class CustomAdminLoginForm(AuthenticationForm):
             expected = self._request.session.get('admin_caption_code', '')
             if not expected or typed != expected.upper():
                 raise forms.ValidationError('Incorrect verification code. Please try again.')
+        return typed
 
 class UserProfileUpdateForm(forms.ModelForm):
     class Meta:

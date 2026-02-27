@@ -4,7 +4,7 @@ import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-)po#4s_0b+l3b84yeu&hx3ve03o!c3-*y6ur@-6-)(^4(fwf2%'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'v_r8k#68*9k22s*re#v1@v!m^*b^z@v^n*s@j*@o*m^d@z*z*i')
 
 DEBUG = True
 
@@ -50,19 +50,21 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'sustainable_living_platform.wsgi.application'
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
-
 if os.environ.get('POSTGRES_URL'):
-    DATABASES['default'] = dj_database_url.config(
-        env='POSTGRES_URL',
-        conn_max_age=600,
-        ssl_require=True
-    )
+    DATABASES = {
+        'default': dj_database_url.config(
+            env='POSTGRES_URL',
+            conn_max_age=600,
+            ssl_require=True
+        )
+    }
+else:
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=os.environ.get('DATABASE_URL', 'postgres://postgres:Rahul@2323@localhost:5432/sustainable_living'),
+            conn_max_age=600,
+        )
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {

@@ -15,4 +15,4 @@ Environmental sustainability requires awareness and behavioral change. This plat
 **User**
 - Description: Learns and applies practices by creating a standard profile, engaging with content, and completing challenges.
 
-*Successfully built utilizing Django, Python, SQLite, HTML5, CSS3, and Bootstrap 5!*
+*Successfully built utilizing Django, Python, PostgreSQL, HTML5, CSS3, and Bootstrap 5!*
