@@ -30,6 +30,9 @@ class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     completed_modules = models.ManyToManyField(LearningModule, blank=True)
     completed_challenges = models.ManyToManyField(Challenge, blank=True)
+    bio = models.TextField(max_length=500, blank=True)
+    location = models.CharField(max_length=100, blank=True)
+    avatar_url = models.URLField(blank=True, help_text="Link to a profile picture")
 
     @property
     def total_points(self):
@@ -38,15 +41,15 @@ class UserProfile(models.Model):
     def __str__(self):
         return f"{self.user.username} Profile"
 
-# Signal to create or update user profile automatically
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 @receiver(post_save, sender=User)
-def create_user_profile(sender, instance, created, **kwargs):
+def create_or_save_user_profile(sender, instance, created, **kwargs):
     if created:
         UserProfile.objects.create(user=instance)
-
-@receiver(post_save, sender=User)
-def save_user_profile(sender, instance, **kwargs):
-    instance.userprofile.save()
+    else:
+        if hasattr(instance, 'userprofile'):
+            instance.userprofile.save()
+        else:
+            UserProfile.objects.create(user=instance)

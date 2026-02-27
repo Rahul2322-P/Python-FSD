@@ -9,30 +9,18 @@ from django.contrib.auth.views import LoginView
 from .models import LearningModule, Challenge, UserProfile
 from .forms import (
     CustomUserCreationForm, CustomLoginForm, CustomAdminLoginForm,
-    LearningModuleForm, ChallengeForm,
+    LearningModuleForm, ChallengeForm, UserProfileUpdateForm, UserUpdateForm
 )
 
-
-# ──────────────────────────────────────────────────────────────────────────────
-#  Helper: generate a random alphanumeric caption code
-# ──────────────────────────────────────────────────────────────────────────────
-
 def _generate_caption_code(length=6):
-    """Return a random uppercase alphanumeric string, e.g. 'A3K9BX'."""
     chars = string.ascii_uppercase + string.digits
     return ''.join(random.choices(chars, k=length))
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-#  User Login  (caption = human-verification code, NOT stored in DB)
-# ──────────────────────────────────────────────────────────────────────────────
 
 class UserLoginView(LoginView):
     template_name = 'core/login.html'
     authentication_form = CustomLoginForm
 
     def get(self, request, *args, **kwargs):
-        # Generate a fresh code on every GET and store it in session
         code = _generate_caption_code()
         request.session['login_caption_code'] = code
         return super().get(request, *args, **kwargs)
@@ -45,21 +33,14 @@ class UserLoginView(LoginView):
     def form_valid(self, form):
         user = form.get_user()
         login(self.request, user)
-        # Clear the used caption code from session — not storing it in DB
         self.request.session.pop('login_caption_code', None)
         messages.success(self.request, f"Welcome back, {user.username}!")
         return redirect('dashboard')
 
     def form_invalid(self, form):
-        # Regenerate code on failed attempt
         code = _generate_caption_code()
         self.request.session['login_caption_code'] = code
         return super().form_invalid(form)
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-#  Admin Login  (caption = human-verification code, NOT stored in DB)
-# ──────────────────────────────────────────────────────────────────────────────
 
 class AdminLoginView(LoginView):
     template_name = 'core/admin_login.html'
@@ -91,41 +72,40 @@ class AdminLoginView(LoginView):
         self.request.session['admin_caption_code'] = code
         return super().form_invalid(form)
 
-
-# ──────────────────────────────────────────────────────────────────────────────
-#  Home
-# ──────────────────────────────────────────────────────────────────────────────
-
 def home(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
     return render(request, 'core/home.html')
 
-
-# ──────────────────────────────────────────────────────────────────────────────
-#  Register  (stores username + email + password in PostgreSQL)
-# ──────────────────────────────────────────────────────────────────────────────
-
 def register(request):
     if request.method == 'POST':
-        form = CustomUserCreationForm(request.POST)
+        form = CustomUserCreationForm(request.POST, request=request)
         if form.is_valid():
             user = form.save()
+            request.session.pop('signup_caption_code', None)
             login(request, user)
             messages.success(request, f"Account created! Welcome, {user.username}!")
             return redirect('dashboard')
+        else:
+            code = _generate_caption_code()
+            request.session['signup_caption_code'] = code
     else:
-        form = CustomUserCreationForm()
-    return render(request, 'core/register.html', {'form': form})
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-#  Dashboard
-# ──────────────────────────────────────────────────────────────────────────────
+        form = CustomUserCreationForm(request=request)
+        code = _generate_caption_code()
+        request.session['signup_caption_code'] = code
+    
+    return render(request, 'core/register.html', {
+        'form': form, 
+        'caption_code': request.session.get('signup_caption_code', '')
+    })
 
 @login_required
 def dashboard(request):
-    profile = request.user.userprofile
+    try:
+        profile = request.user.userprofile
+    except Exception:
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    
     completed_modules = profile.completed_modules.all()
     completed_challenges = profile.completed_challenges.all()
     all_modules = LearningModule.objects.all()
@@ -140,80 +120,95 @@ def dashboard(request):
     }
     return render(request, 'core/dashboard.html', context)
 
+@login_required
+def profile(request):
+    if request.method == 'POST':
+        u_form = UserUpdateForm(request.POST, instance=request.user)
+        p_form = UserProfileUpdateForm(request.POST, instance=request.user.userprofile)
+        if u_form.is_valid() and p_form.is_valid():
+            u_form.save()
+            p_form.save()
+            messages.success(request, "Your profile has been updated!")
+            return redirect('profile')
+    else:
+        u_form = UserUpdateForm(instance=request.user)
+        p_form = UserProfileUpdateForm(instance=request.user.userprofile)
 
-# ──────────────────────────────────────────────────────────────────────────────
-#  Modules
-# ──────────────────────────────────────────────────────────────────────────────
+    context = {
+        'u_form': u_form,
+        'p_form': p_form
+    }
+    return render(request, 'core/profile.html', context)
 
 @login_required
 def module_list(request):
+    try:
+        profile = request.user.userprofile
+    except Exception:
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
     modules = LearningModule.objects.all()
-    profile = request.user.userprofile
     completed_modules = profile.completed_modules.all()
     return render(request, 'core/module_list.html', {
         'modules': modules, 'completed_modules': completed_modules
     })
 
-
 @login_required
 def module_detail(request, pk):
+    try:
+        profile = request.user.userprofile
+    except Exception:
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
     module = get_object_or_404(LearningModule, pk=pk)
-    profile = request.user.userprofile
     is_completed = module in profile.completed_modules.all()
     return render(request, 'core/module_detail.html', {
         'module': module, 'is_completed': is_completed
     })
 
-
 @login_required
 def complete_module(request, pk):
     if request.method == 'POST':
+        try:
+            profile = request.user.userprofile
+        except Exception:
+            profile, _ = UserProfile.objects.get_or_create(user=request.user)
         module = get_object_or_404(LearningModule, pk=pk)
-        profile = request.user.userprofile
         profile.completed_modules.add(module)
         messages.success(request, f"Congratulations! You completed '{module.title}'.")
         return redirect('module_detail', pk=pk)
     return redirect('modules')
 
-
-# ──────────────────────────────────────────────────────────────────────────────
-#  Challenges
-# ──────────────────────────────────────────────────────────────────────────────
-
 @login_required
 def challenge_list(request):
+    try:
+        profile = request.user.userprofile
+    except Exception:
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
     challenges = Challenge.objects.all()
-    profile = request.user.userprofile
     completed_challenges = profile.completed_challenges.all()
     return render(request, 'core/challenge_list.html', {
         'challenges': challenges, 'completed_challenges': completed_challenges
     })
 
-
 @login_required
 def complete_challenge(request, pk):
     if request.method == 'POST':
+        try:
+            profile = request.user.userprofile
+        except Exception:
+            profile, _ = UserProfile.objects.get_or_create(user=request.user)
         challenge = get_object_or_404(Challenge, pk=pk)
-        profile = request.user.userprofile
         if challenge not in profile.completed_challenges.all():
             profile.completed_challenges.add(challenge)
             messages.success(request, f"Challenge completed! You earned {challenge.points} point(s).")
     return redirect('challenges')
 
-
-# ──────────────────────────────────────────────────────────────────────────────
-#  Custom Admin Views
-# ──────────────────────────────────────────────────────────────────────────────
-
 def is_staff(user):
     return user.is_authenticated and user.is_staff
-
 
 @user_passes_test(is_staff, login_url='admin_login')
 def custom_admin_dashboard(request):
     modules = LearningModule.objects.all()
     challenges = Challenge.objects.all()
-    # Fetch all users with their profiles for display in admin dashboard
     users = User.objects.select_related('userprofile').all().order_by('-date_joined')
     context = {
         'modules': modules,
@@ -224,7 +219,6 @@ def custom_admin_dashboard(request):
         'total_challenges': challenges.count(),
     }
     return render(request, 'core/custom_admin/dashboard.html', context)
-
 
 @user_passes_test(is_staff, login_url='admin_login')
 def custom_admin_module_create(request):
@@ -237,7 +231,6 @@ def custom_admin_module_create(request):
     else:
         form = LearningModuleForm()
     return render(request, 'core/custom_admin/form.html', {'form': form, 'title': 'Create Module'})
-
 
 @user_passes_test(is_staff, login_url='admin_login')
 def custom_admin_module_edit(request, pk):
@@ -252,7 +245,6 @@ def custom_admin_module_edit(request, pk):
         form = LearningModuleForm(instance=module)
     return render(request, 'core/custom_admin/form.html', {'form': form, 'title': 'Edit Module'})
 
-
 @user_passes_test(is_staff, login_url='admin_login')
 def custom_admin_module_delete(request, pk):
     module = get_object_or_404(LearningModule, pk=pk)
@@ -261,7 +253,6 @@ def custom_admin_module_delete(request, pk):
         messages.success(request, "Module deleted successfully.")
         return redirect('custom_admin_dashboard')
     return render(request, 'core/custom_admin/confirm_delete.html', {'obj': module, 'title': 'Delete Module'})
-
 
 @user_passes_test(is_staff, login_url='admin_login')
 def custom_admin_challenge_create(request):
@@ -275,7 +266,6 @@ def custom_admin_challenge_create(request):
         form = ChallengeForm()
     return render(request, 'core/custom_admin/form.html', {'form': form, 'title': 'Create Challenge'})
 
-
 @user_passes_test(is_staff, login_url='admin_login')
 def custom_admin_challenge_edit(request, pk):
     challenge = get_object_or_404(Challenge, pk=pk)
@@ -288,7 +278,6 @@ def custom_admin_challenge_edit(request, pk):
     else:
         form = ChallengeForm(instance=challenge)
     return render(request, 'core/custom_admin/form.html', {'form': form, 'title': 'Edit Challenge'})
-
 
 @user_passes_test(is_staff, login_url='admin_login')
 def custom_admin_challenge_delete(request, pk):

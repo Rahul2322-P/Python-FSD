@@ -1,12 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.models import User
-from .models import LearningModule, Challenge
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-#  Admin Content Forms
-# ──────────────────────────────────────────────────────────────────────────────
+from .models import LearningModule, Challenge, UserProfile
 
 class LearningModuleForm(forms.ModelForm):
     class Meta:
@@ -18,7 +13,6 @@ class LearningModuleForm(forms.ModelForm):
             'content': forms.Textarea(attrs={'class': 'form-control', 'rows': 5, 'placeholder': 'Detailed content'}),
         }
 
-
 class ChallengeForm(forms.ModelForm):
     class Meta:
         model = Challenge
@@ -29,14 +23,7 @@ class ChallengeForm(forms.ModelForm):
             'points': forms.NumberInput(attrs={'class': 'form-control'}),
         }
 
-
-# ──────────────────────────────────────────────────────────────────────────────
-#  Sign-Up Form  (username + email + password → saved to PostgreSQL)
-# ──────────────────────────────────────────────────────────────────────────────
-
 class CustomUserCreationForm(UserCreationForm):
-    """Signup: username, email, password1, password2 — all stored in PostgreSQL."""
-
     email = forms.EmailField(
         required=True,
         widget=forms.EmailInput(attrs={
@@ -69,23 +56,40 @@ class CustomUserCreationForm(UserCreationForm):
         })
     )
 
+    caption = forms.CharField(
+        max_length=20,
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control text-center fw-bold',
+            'placeholder': 'Type the code shown above',
+            'autocomplete': 'off',
+            'style': 'letter-spacing: 4px; font-size: 1.2rem;',
+        }),
+        help_text='Enter the alphanumeric code shown on screen to verify you are human.'
+    )
+
     class Meta(UserCreationForm.Meta):
         model = User
-        fields = ['username', 'email', 'password1', 'password2']
+        fields = ['username', 'email']
+
+    def __init__(self, *args, **kwargs):
+        self._request = kwargs.pop('request', None)
+        super().__init__(*args, **kwargs)
+
+    def clean_caption(self):
+        typed = self.cleaned_data.get('caption', '').strip().upper()
+        if self._request:
+            expected = self._request.session.get('signup_caption_code', '')
+            if not expected or typed != expected.upper():
+                raise forms.ValidationError('Incorrect verification code. Please try again.')
+        return typed
 
     def save(self, commit=True):
         user = super().save(commit=False)
         user.email = self.cleaned_data['email']
         if commit:
-            user.save()   # saves username + email + hashed password to PostgreSQL
+            user.save()
         return user
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-#  User Login Form
-#  caption = human verification code (any alphanumeric the user types back)
-#  NOT stored in database — just used to verify human input
-# ──────────────────────────────────────────────────────────────────────────────
 
 class CustomLoginForm(AuthenticationForm):
     username = forms.CharField(
@@ -114,24 +118,19 @@ class CustomLoginForm(AuthenticationForm):
         })
     )
 
-    def __init__(self, request=None, *args, **kwargs):
-        super().__init__(request, *args, **kwargs)
-        # Store request so view can access session-stored caption for validation
-        self._request = request
+    def __init__(self, *args, **kwargs):
+        self._request = kwargs.get('request')
+        if not self._request and args:
+            self._request = args[0]
+        super().__init__(*args, **kwargs)
 
     def clean_caption(self):
-        """Validate that the typed code matches the session-stored code."""
         typed = self.cleaned_data.get('caption', '').strip().upper()
         if self._request:
             expected = self._request.session.get('login_caption_code', '')
             if not expected or typed != expected.upper():
                 raise forms.ValidationError('Incorrect verification code. Please try again.')
         return typed
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-#  Admin Login Form  (same caption verification logic — NOT stored in DB)
-# ──────────────────────────────────────────────────────────────────────────────
 
 class CustomAdminLoginForm(AuthenticationForm):
     username = forms.CharField(
@@ -160,15 +159,36 @@ class CustomAdminLoginForm(AuthenticationForm):
         })
     )
 
-    def __init__(self, request=None, *args, **kwargs):
-        super().__init__(request, *args, **kwargs)
-        self._request = request
+    def __init__(self, *args, **kwargs):
+        self._request = kwargs.get('request')
+        if not self._request and args:
+            self._request = args[0]
+        super().__init__(*args, **kwargs)
 
     def clean_caption(self):
-        """Validate that the typed code matches the session-stored code."""
         typed = self.cleaned_data.get('caption', '').strip().upper()
         if self._request:
             expected = self._request.session.get('admin_caption_code', '')
             if not expected or typed != expected.upper():
                 raise forms.ValidationError('Incorrect verification code. Please try again.')
-        return typed
+
+class UserProfileUpdateForm(forms.ModelForm):
+    class Meta:
+        model = UserProfile
+        fields = ['bio', 'location', 'avatar_url']
+        widgets = {
+            'bio': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Tell us about yourself...'}),
+            'location': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. New York, USA'}),
+            'avatar_url': forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'https://example.com/photo.jpg'}),
+        }
+
+class UserUpdateForm(forms.ModelForm):
+    email = forms.EmailField(widget=forms.EmailInput(attrs={'class': 'form-control'}))
+    
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'email']
+        widgets = {
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+        }

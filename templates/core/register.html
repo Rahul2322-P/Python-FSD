@@ -26,7 +26,7 @@
                 <form method="post" novalidate>
                     {% csrf_token %}
 
-                    <!-- Username -->
+                    
                     <div class="mb-3">
                         <label for="{{ form.username.id_for_label }}" class="form-label fw-semibold">
                             <i class="bi bi-person-fill me-1 text-success"></i>Username
@@ -38,7 +38,7 @@
                         {% endif %}
                     </div>
 
-                    <!-- Email -->
+                    
                     <div class="mb-3">
                         <label for="{{ form.email.id_for_label }}" class="form-label fw-semibold">
                             <i class="bi bi-envelope-fill me-1 text-success"></i>Email Address
@@ -50,7 +50,7 @@
                         {% endif %}
                     </div>
 
-                    <!-- Password -->
+                    
                     <div class="mb-3">
                         <label for="{{ form.password1.id_for_label }}" class="form-label fw-semibold">
                             <i class="bi bi-lock-fill me-1 text-success"></i>Password
@@ -65,7 +65,7 @@
                         {% endif %}
                     </div>
 
-                    <!-- Confirm Password -->
+                    
                     <div class="mb-4">
                         <label for="{{ form.password2.id_for_label }}" class="form-label fw-semibold">
                             <i class="bi bi-shield-lock-fill me-1 text-success"></i>Confirm Password

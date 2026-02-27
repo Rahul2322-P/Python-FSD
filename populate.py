@@ -7,11 +7,9 @@ django.setup()
 from core.models import LearningModule, Challenge
 
 def populate():
-    print("Clearing existing data...")
     LearningModule.objects.all().delete()
     Challenge.objects.all().delete()
 
-    print("Populating Learning Modules...")
     modules = [
         {
             "title": "Introduction to Sustainable Living",
@@ -38,7 +36,6 @@ def populate():
     for m in modules:
         LearningModule.objects.create(**m)
 
-    print("Populating Challenges...")
     challenges = [
         {
             "title": "Zero-Waste Grocery Run",
@@ -74,8 +71,6 @@ def populate():
 
     for c in challenges:
         Challenge.objects.create(**c)
-
-    print("Success! Database populated with professional mock data.")
 
 if __name__ == '__main__':
     populate()
