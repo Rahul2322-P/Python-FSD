@@ -133,11 +133,17 @@ def dashboard(request):
     completed_challenges = profile.completed_challenges.all()
     all_modules = LearningModule.objects.all()
     all_challenges = Challenge.objects.all()
+    pending_modules = all_modules.exclude(pk__in=completed_modules.values_list('pk', flat=True))
+    pending_challenges = all_challenges.exclude(pk__in=completed_challenges.values_list('pk', flat=True))
 
     context = {
         'profile': profile,
         'completed_modules': completed_modules,
         'completed_challenges': completed_challenges,
+        'pending_modules': pending_modules,
+        'pending_challenges': pending_challenges,
+        'next_module': pending_modules.first(),
+        'next_challenge': pending_challenges.first(),
         'module_progress': len(completed_modules) / len(all_modules) * 100 if all_modules else 0,
         'challenge_progress': len(completed_challenges) / len(all_challenges) * 100 if all_challenges else 0,
     }

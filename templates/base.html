@@ -72,7 +72,13 @@
                         <a class="nav-link text-info fw-bold" href="{% url 'custom_admin_dashboard' %}"><i
                                 class="bi bi-shield-lock me-1"></i>Admin Dashboard</a>
                     </li>
-                    {% endif %}
+                    <li class="nav-item">
+                        <form action="{% url 'logout' %}" method="post" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-link nav-link">Log out</button>
+                        </form>
+                    </li>
+                    {% else %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'dashboard' %}">Progress tracking</a>
                     </li>
@@ -88,6 +94,7 @@
                             <button type="submit" class="btn btn-link nav-link">Log out</button>
                         </form>
                     </li>
+                    {% endif %}
                     {% else %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'home' %}">Home</a>

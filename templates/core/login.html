@@ -21,7 +21,9 @@
 
                 {% if form.non_field_errors %}
                 <div class="alert alert-danger rounded-3 py-2">
-                    <i class="bi bi-exclamation-triangle-fill me-2"></i>Invalid username or password.
+                    {% for error in form.non_field_errors %}
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}<br>
+                    {% endfor %}
                 </div>
                 {% endif %}
 
@@ -53,25 +55,23 @@
                     </div>
 
                     
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Caption</label>
+                        <div class="border rounded-3 p-3 bg-light text-center fw-bold text-uppercase">
+                            {{ captcha_text }}
+                        </div>
+                    </div>
+
                     <div class="mb-4">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-shield-check me-1 text-success"></i>Verification Code
+                        <label for="{{ form.captcha_code.id_for_label }}" class="form-label fw-semibold">
+                            <i class="bi bi-card-text me-1 text-success"></i>Enter Caption Code
                         </label>
-
-                        
-                        <div class="caption-box text-center p-3 mb-2 rounded-3 border border-2 border-success"
-                            style="background: linear-gradient(135deg, #f0fdf4, #dcfce7); letter-spacing: 8px; font-size: 1.8rem; font-weight: 800; font-family: 'Courier New', monospace; color: #16a34a; user-select: none;">
-                            {{ caption_code }}
-                        </div>
-                        <div class="form-text text-muted small text-center mb-2">
-                            <i class="bi bi-info-circle me-1"></i>
-                            Type the code above to verify you are human. Not stored anywhere.
-                        </div>
-
-                        {{ form.caption }}
-                        {% if form.caption.errors %}
-                        <div class="text-danger small mt-1"><i class="bi bi-x-circle me-1"></i>{{ form.caption.errors.0
-                            }}</div>
+                        {{ form.captcha_code }}
+                        {% if form.captcha_code.errors %}
+                        <div class="text-danger small mt-1"><i class="bi bi-x-circle me-1"></i>{{ form.captcha_code.errors.0 }}</div>
+                        {% endif %}
+                        {% if form.captcha_code.help_text %}
+                        <div class="form-text text-muted small">{{ form.captcha_code.help_text }}</div>
                         {% endif %}
                     </div>
 
