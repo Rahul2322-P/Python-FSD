@@ -1,103 +1,126 @@
+import logging
 import random
 import string
+from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth import login
+from django.contrib.auth import login, authenticate
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
 from django.contrib import messages
-from django.contrib.auth.views import LoginView
 from .models import LearningModule, Challenge, UserProfile
 from .forms import (
     CustomUserCreationForm, CustomLoginForm, CustomAdminLoginForm,
-    LearningModuleForm, ChallengeForm, UserProfileUpdateForm, UserUpdateForm
+    LearningModuleForm, ChallengeForm,
+    UserProfileUpdateForm, UserUpdateForm
 )
 
-def _generate_caption_code(length=6):
-    chars = string.ascii_uppercase + string.digits
-    return ''.join(random.choices(chars, k=length))
+logger = logging.getLogger(__name__)
 
-class UserLoginView(LoginView):
-    template_name = 'core/login.html'
-    authentication_form = CustomLoginForm
 
-    def get(self, request, *args, **kwargs):
-        code = _generate_caption_code()
-        request.session['login_caption_code'] = code
-        return super().get(request, *args, **kwargs)
+def _generate_captcha_code(request):
+    code = ''.join(random.choices(string.ascii_uppercase, k=4)) + ''.join(random.choices(string.digits, k=4))
+    request.session['captcha_expected'] = code
+    return f"{code[:4]} {code[4:]}"
 
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx['caption_code'] = self.request.session.get('login_caption_code', '')
-        return ctx
 
-    def form_valid(self, form):
-        user = form.get_user()
-        login(self.request, user)
-        self.request.session.pop('login_caption_code', None)
-        messages.success(self.request, f"Welcome back, {user.username}!")
+# ═══════════════════════════════════════════════════════════════
+#  REGISTRATION FLOW  (Direct account creation without email OTP)
+# ═══════════════════════════════════════════════════════════════
+
+def register(request):
+    """Collect user registration details and create an account."""
+    if request.user.is_authenticated:
         return redirect('dashboard')
 
-    def form_invalid(self, form):
-        code = _generate_caption_code()
-        self.request.session['login_caption_code'] = code
-        return super().form_invalid(form)
+    if request.method == 'POST':
+        form = CustomUserCreationForm(request.POST)
+        if form.is_valid():
+            # Ensure database is migrated before creating user
+            from django.core.management import call_command
+            call_command('migrate', interactive=False, verbosity=0)
+            user = form.save()
+            login(request, user)
+            messages.success(request, f"Welcome to EcoLearn, {user.username}! Your account has been created.")
+            return redirect('dashboard')
+        else:
+            messages.error(request, 'Please fix the errors below and try again.')
+    else:
+        form = CustomUserCreationForm()
 
-class AdminLoginView(LoginView):
-    template_name = 'core/admin_login.html'
-    authentication_form = CustomAdminLoginForm
+    return render(request, 'core/register.html', {'form': form})
 
-    def get(self, request, *args, **kwargs):
-        code = _generate_caption_code()
-        request.session['admin_caption_code'] = code
-        return super().get(request, *args, **kwargs)
 
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx['caption_code'] = self.request.session.get('admin_caption_code', '')
-        return ctx
+# ═══════════════════════════════════════════════════════════════
+#  USER LOGIN FLOW  (Direct credentials only, with a caption challenge)
+# ═══════════════════════════════════════════════════════════════
 
-    def form_valid(self, form):
-        user = form.get_user()
-        if user.is_staff:
-            login(self.request, user)
-            self.request.session.pop('admin_caption_code', None)
-            messages.success(self.request, f"Admin access granted. Welcome, {user.username}!")
+def user_login(request):
+    """Collect user login credentials and perform a caption challenge."""
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        form = CustomLoginForm(request, data=request.POST)
+        if form.is_valid():
+            user = form.get_user()
+            login(request, user)
+            messages.success(request, f"Welcome back, {user.username}! 🌿")
+            return redirect('dashboard')
+        else:
+            messages.error(request, 'Please fix the login errors and try again.')
+    else:
+        form = CustomLoginForm(request)
+
+    captcha_text = _generate_captcha_code(request)
+    return render(request, 'core/login.html', {'form': form, 'captcha_text': captcha_text})
+
+
+# ═══════════════════════════════════════════════════════════════
+#  ADMIN LOGIN FLOW  (Direct credentials + secret code)
+# ═══════════════════════════════════════════════════════════════
+
+def admin_login(request):
+    """Collect admin login credentials and admin secret code."""
+    if request.user.is_authenticated and request.user.is_staff:
+        return redirect('custom_admin_dashboard')
+
+    if request.method == 'POST':
+        form = CustomAdminLoginForm(request, data=request.POST)
+        if form.is_valid():
+            user = form.get_user()
+            if not user.is_staff:
+                messages.error(request, 'Access denied. You do not have administrator privileges.')
+                return redirect('admin_login')
+
+            login(request, user)
+            messages.success(request, f"Admin access granted. Welcome, {user.username}! 🛡️")
             return redirect('custom_admin_dashboard')
         else:
-            messages.error(self.request, "Access denied. You do not have administrator privileges.")
-            return self.form_invalid(form)
+            messages.error(request, 'Please fix the admin login errors and try again.')
+    else:
+        form = CustomAdminLoginForm(request)
 
-    def form_invalid(self, form):
-        code = _generate_caption_code()
-        self.request.session['admin_caption_code'] = code
-        return super().form_invalid(form)
+    captcha_text = _generate_captcha_code(request)
+    return render(request, 'core/admin_login.html', {
+        'form': form,
+        'captcha_text': captcha_text,
+    })
+
+
+# ═══════════════════════════════════════════════════════════════
+#  HOME & DASHBOARD
+# ═══════════════════════════════════════════════════════
+
+
+# ═══════════════════════════════════════════════════════════════
+#  HOME & DASHBOARD
+# ═══════════════════════════════════════════════════════════════
 
 def home(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
     return render(request, 'core/home.html')
 
-def register(request):
-    if request.method == 'POST':
-        form = CustomUserCreationForm(request.POST, request=request)
-        if form.is_valid():
-            user = form.save()
-            request.session.pop('signup_caption_code', None)
-            login(request, user)
-            messages.success(request, f"Account created! Welcome, {user.username}!")
-            return redirect('dashboard')
-        else:
-            code = _generate_caption_code()
-            request.session['signup_caption_code'] = code
-    else:
-        form = CustomUserCreationForm(request=request)
-        code = _generate_caption_code()
-        request.session['signup_caption_code'] = code
-    
-    return render(request, 'core/register.html', {
-        'form': form, 
-        'caption_code': request.session.get('signup_caption_code', '')
-    })
 
 @login_required
 def dashboard(request):
@@ -105,7 +128,7 @@ def dashboard(request):
         profile = request.user.userprofile
     except Exception:
         profile, _ = UserProfile.objects.get_or_create(user=request.user)
-    
+
     completed_modules = profile.completed_modules.all()
     completed_challenges = profile.completed_challenges.all()
     all_modules = LearningModule.objects.all()
@@ -119,6 +142,7 @@ def dashboard(request):
         'challenge_progress': len(completed_challenges) / len(all_challenges) * 100 if all_challenges else 0,
     }
     return render(request, 'core/dashboard.html', context)
+
 
 @login_required
 def profile(request):
@@ -140,6 +164,11 @@ def profile(request):
     }
     return render(request, 'core/profile.html', context)
 
+
+# ═══════════════════════════════════════════════════════════════
+#  MODULES & CHALLENGES
+# ═══════════════════════════════════════════════════════════════
+
 @login_required
 def module_list(request):
     try:
@@ -152,6 +181,7 @@ def module_list(request):
         'modules': modules, 'completed_modules': completed_modules
     })
 
+
 @login_required
 def module_detail(request, pk):
     try:
@@ -163,6 +193,7 @@ def module_detail(request, pk):
     return render(request, 'core/module_detail.html', {
         'module': module, 'is_completed': is_completed
     })
+
 
 @login_required
 def complete_module(request, pk):
@@ -177,6 +208,7 @@ def complete_module(request, pk):
         return redirect('module_detail', pk=pk)
     return redirect('modules')
 
+
 @login_required
 def challenge_list(request):
     try:
@@ -188,6 +220,7 @@ def challenge_list(request):
     return render(request, 'core/challenge_list.html', {
         'challenges': challenges, 'completed_challenges': completed_challenges
     })
+
 
 @login_required
 def complete_challenge(request, pk):
@@ -202,8 +235,14 @@ def complete_challenge(request, pk):
             messages.success(request, f"Challenge completed! You earned {challenge.points} point(s).")
     return redirect('challenges')
 
+
+# ═══════════════════════════════════════════════════════════════
+#  ADMIN MANAGEMENT VIEWS
+# ═══════════════════════════════════════════════════════════════
+
 def is_staff(user):
     return user.is_authenticated and user.is_staff
+
 
 @user_passes_test(is_staff, login_url='admin_login')
 def custom_admin_dashboard(request):
@@ -220,6 +259,7 @@ def custom_admin_dashboard(request):
     }
     return render(request, 'core/custom_admin/dashboard.html', context)
 
+
 @user_passes_test(is_staff, login_url='admin_login')
 def custom_admin_module_create(request):
     if request.method == 'POST':
@@ -231,6 +271,7 @@ def custom_admin_module_create(request):
     else:
         form = LearningModuleForm()
     return render(request, 'core/custom_admin/form.html', {'form': form, 'title': 'Create Module'})
+
 
 @user_passes_test(is_staff, login_url='admin_login')
 def custom_admin_module_edit(request, pk):
@@ -245,6 +286,7 @@ def custom_admin_module_edit(request, pk):
         form = LearningModuleForm(instance=module)
     return render(request, 'core/custom_admin/form.html', {'form': form, 'title': 'Edit Module'})
 
+
 @user_passes_test(is_staff, login_url='admin_login')
 def custom_admin_module_delete(request, pk):
     module = get_object_or_404(LearningModule, pk=pk)
@@ -253,6 +295,7 @@ def custom_admin_module_delete(request, pk):
         messages.success(request, "Module deleted successfully.")
         return redirect('custom_admin_dashboard')
     return render(request, 'core/custom_admin/confirm_delete.html', {'obj': module, 'title': 'Delete Module'})
+
 
 @user_passes_test(is_staff, login_url='admin_login')
 def custom_admin_challenge_create(request):
@@ -266,6 +309,7 @@ def custom_admin_challenge_create(request):
         form = ChallengeForm()
     return render(request, 'core/custom_admin/form.html', {'form': form, 'title': 'Create Challenge'})
 
+
 @user_passes_test(is_staff, login_url='admin_login')
 def custom_admin_challenge_edit(request, pk):
     challenge = get_object_or_404(Challenge, pk=pk)
@@ -278,6 +322,7 @@ def custom_admin_challenge_edit(request, pk):
     else:
         form = ChallengeForm(instance=challenge)
     return render(request, 'core/custom_admin/form.html', {'form': form, 'title': 'Edit Challenge'})
+
 
 @user_passes_test(is_staff, login_url='admin_login')
 def custom_admin_challenge_delete(request, pk):
